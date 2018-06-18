@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="console-repeater.js"></script>
+  </head>
+  <body>
+    <script>
+      ConsoleRepeater.extend(console)
+
+      console.repeater.add(new ConsoleRepeater.OSD())
+
+      console.repeater.add(function (level, message) {
+        // custom processing, e.g. send to log collection server
+      })
+
+      console.log('hello, world')
+    </script>
+  </body>
+</html>
