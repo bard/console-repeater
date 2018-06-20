@@ -2,19 +2,20 @@
   const ConsoleRepeater = {}
 
   ConsoleRepeater.extend = function (consoleObj) {
-    var loggers = []
+    var loggers = {}
     var logging = false
+    var logCounter = 0
 
-    var consoleLoggers = {}
+    var originalLoggers = {}
 
     ;['log', 'warn', 'info', 'trace', 'error'].forEach(function (methodName) {
-      consoleLoggers[methodName] = consoleObj[methodName]
+      originalLoggers[methodName] = consoleObj[methodName]
 
       consoleObj[methodName] = function () {
         try {
           // First this, so trouble in the extended behavior won't
           // prevent the original one
-          consoleLoggers[methodName].apply(consoleObj, arguments)
+          originalLoggers[methodName].apply(consoleObj, arguments)
 
           if (logging) {
             // _logging is true when a logger is running; if that's
@@ -24,25 +25,22 @@
 
           var args = Array.prototype.slice.call(arguments)
 
-          loggers.forEach(function (logger) {
+          for (var loggerName in loggers) {
+            var logger = loggers[loggerName]
+
             try {
               logging = true
-              if (typeof logger === 'function') {
-                logger(methodName, args)
-              } else if (typeof logger === 'object' &&
-                         typeof logger.handle === 'function') {
-                logger.handle(methodName, args)
-              }
+              logger.handle(methodName, args)
             } catch (err) {
               // Catch problems in handlers
-              consoleLoggers['error'].call(consoleObj, err)
+              originalLoggers['error'].call(consoleObj, err)
             } finally {
               logging = false
             }
-          })
+          }
         } catch (err) {
           // Catch problems in Multiplexer itself
-          consoleLoggers['error'].call(consoleObj, err)
+          originalLoggers['error'].call(consoleObj, err)
         }
       }
     })
@@ -50,13 +48,22 @@
     console.repeater = {}
 
     console.repeater.add = function (logger) {
-      if (typeof logger === 'function' ||
-          (typeof logger === 'object' &&
-           typeof logger.handle === 'function')) {
-        loggers.push(logger)
-      } else {
-        throw new Error('Expected function or object with handle() method.')
+      var name = '_logger_' + logCounter++
+      console.repeater.set(name, logger)
+      return name
+    }
+
+    console.repeater.set = function (name, logger) {
+      if (typeof logger === 'object' &&
+          typeof logger.handle === 'function') {
+        loggers[name] = logger
+      } else if (typeof logger === 'function') {
+        loggers[name] = { handle: logger }
       }
+    }
+
+    console.repeater.remove = (name) => {
+      delete loggers[name]
     }
   }
 
