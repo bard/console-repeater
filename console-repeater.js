@@ -62,7 +62,7 @@
       }
     }
 
-    console.repeater.remove = (name) => {
+    console.repeater.remove = function (name) {
       delete loggers[name]
     }
   }
