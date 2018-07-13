@@ -1,5 +1,5 @@
 ;(function () {
-  const ConsoleRepeater = {}
+  var ConsoleRepeater = {}
 
   ConsoleRepeater.extend = function (consoleObj) {
     var loggers = {}
