@@ -1,18 +1,20 @@
 <!doctype html>
 <html>
   <head>
+    <!-- Import early to catch as many console.log()'s as possible -->
     <script src="console-repeater.js"></script>
-  </head>
-  <body>
     <script>
       ConsoleRepeater.extend(console)
-
       console.repeater.add(new ConsoleRepeater.OSD())
 
       console.repeater.add(function (level, message) {
         // custom processing, e.g. send to log collection server
       })
+    </script>
+  </head>
+  <body>
 
+    <script>
       console.log('hello, world')
     </script>
   </body>

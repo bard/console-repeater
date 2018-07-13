@@ -70,6 +70,10 @@
   // ON-SCREEN CONSOLE
   // ----------------------------------------------------------------------
 
+  // Maximum amount of messages to save if OSD console was
+  // instantiated but not added to DOM yet
+  var OSD_BACKLOG_SIZE = 10
+
   ConsoleRepeater.OSD = function () {
     addCSS(cssObjectToString({
       '.osd-console': {
@@ -99,20 +103,56 @@
     }))
 
     this._counter = 0
-    this._element = document.createElement('div')
-    this._element.setAttribute('class', 'osd-console')
-    this._element.style.display = 'block'
-    document.body.appendChild(this._element)
+    this._backlog = []
+
+    var self = this
+    function addElement () {
+      self._element = document.createElement('div')
+      self._element.setAttribute('class', 'osd-console')
+      self._element.style.display = 'block'
+
+      document.body.appendChild(self._element)
+
+      while (self._backlog.length > 0) {
+        var backlogEntry = self._backlog.shift()
+        var level = backlogEntry[0]
+        var args = backlogEntry[1]
+        self.handle(level, args)
+      }
+    }
+
+    if (document.body) {
+      addElement()
+    } else {
+      if (document.attachEvent) {
+        document.attachEvent('onreadystatechange', function () {
+          if (document.readyState === 'complete') {
+            addElement()
+          }
+        })
+      } else {
+        document.addEventListener('DOMContentLoaded', function () {
+          addElement()
+        })
+      }
+    }
   }
 
   ConsoleRepeater.OSD.prototype.handle = function (level, args) {
-    if (this._element.style.display === 'block') {
-      var message = this._counter++ + ' [' + level + '] ' + args.join(' ')
-      var messageEl = document.createElement('div')
-      messageEl.setAttribute('class', 'osd-console-message')
-      messageEl.textContent = message
-      this._element.appendChild(messageEl)
-      this._element.scrollTop = this._element.scrollHeight
+    if (this._element) {
+      if (this._element.style.display === 'block') {
+        var message = this._counter++ + ' [' + level + '] ' + args.join(' ')
+        var messageEl = document.createElement('div')
+        messageEl.setAttribute('class', 'osd-console-message')
+        messageEl.textContent = message
+        this._element.appendChild(messageEl)
+        this._element.scrollTop = this._element.scrollHeight
+      }
+    } else {
+      if (this._backlog.length > OSD_BACKLOG_SIZE) {
+        this._backlog.shift()
+      }
+      this._backlog.push([level, args])
     }
   }
 
