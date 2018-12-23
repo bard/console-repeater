@@ -75,9 +75,14 @@
   // instantiated but not added to DOM yet
   var OSD_BACKLOG_SIZE = 10
 
-  ConsoleRepeater.OSD = function () {
+  ConsoleRepeater.OSD = function (opts) {
+    if (!opts) {
+      opts = {}
+    }
+
     this._counter = 0
     this._backlog = []
+    this._popupOnLogLevels = opts.popupOnLogLevels || []
 
     this._initDom()
     this._initCss()
@@ -159,6 +164,10 @@
   }
 
   ConsoleRepeater.OSD.prototype._appendMessage = function (level, args) {
+    if (!this.isVisible() &&
+        this._popupOnLogLevels.indexOf(level) !== -1) {
+      this.display()
+    }
 
     var message = this._counter++
         + ' [' + level + '] '
@@ -176,6 +185,10 @@
     } else {
       this._storeInBacklog(level, args)
     }
+  }
+
+  ConsoleRepeater.OSD.prototype.isVisible = function () {
+    return this._element.style.display === 'block'
   }
 
   ConsoleRepeater.OSD.prototype.display = function () {

@@ -5,7 +5,9 @@
     <script src="console-repeater.js"></script>
     <script>
       ConsoleRepeater.extend(console)
-      console.repeater.add(new ConsoleRepeater.OSD())
+      console.repeater.add(new ConsoleRepeater.OSD({
+        popupOnLogLevels: ['error']
+      }))
 
       console.repeater.add(function (level, message) {
         // custom processing, e.g. send to log collection server
@@ -16,6 +18,9 @@
 
     <script>
       console.log('hello, world')
+      setTimeout(function () {
+        console.error('foo bar')
+      }, 2000)
     </script>
   </body>
 </html>
