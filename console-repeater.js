@@ -244,5 +244,10 @@
   // EXPORTS
   // ----------------------------------------------------------------------
 
-  window.ConsoleRepeater = ConsoleRepeater
+
+  if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = ConsoleRepeater
+  } else {
+    window.ConsoleRepeater = ConsoleRepeater
+  }
 })()
