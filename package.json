@@ -1,0 +1,8 @@
+{
+  "name": "console-repeater",
+  "version": "0.1.0",
+  "main": "console-repeater.js",
+  "repository": "https://github.com/bard/console-repeater.git",
+  "author": "Massimiliano Mirra <bard@hyperstruct.net>",
+  "license": "MIT"
+}
