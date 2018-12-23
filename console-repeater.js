@@ -39,7 +39,8 @@
             }
           }
         } catch (err) {
-          // Catch problems in Multiplexer itself
+          // Catch problems in repeater itself
+          console.log(originalLoggers)
           originalLoggers['error'].call(consoleObj, err)
         }
       }
@@ -75,6 +76,14 @@
   var OSD_BACKLOG_SIZE = 10
 
   ConsoleRepeater.OSD = function () {
+    this._counter = 0
+    this._backlog = []
+
+    this._initDom()
+    this._initCss()
+  }
+
+  ConsoleRepeater.OSD.prototype._initCss = function () {
     addCSS(cssObjectToString({
       '.osd-console': {
         'position': 'fixed',
@@ -98,61 +107,74 @@
         'margin': '3px 0',
         'padding': '0',
         'font-size': '0.6rem',
-        'word-break': 'break-all'
+        'word-break': 'break-all',
+        'white-space': 'pre-wrap'
       }
     }))
+  }
 
-    this._counter = 0
-    this._backlog = []
-
-    var self = this
-    function addElement () {
-      self._element = document.createElement('div')
-      self._element.setAttribute('class', 'osd-console')
-      self._element.style.display = 'block'
-
-      document.body.appendChild(self._element)
-
-      while (self._backlog.length > 0) {
-        var backlogEntry = self._backlog.shift()
-        var level = backlogEntry[0]
-        var args = backlogEntry[1]
-        self.handle(level, args)
-      }
-    }
+  ConsoleRepeater.OSD.prototype._initDom = function () {
+    this._element = document.createElement('div')
+    this._element.setAttribute('class', 'osd-console')
 
     if (document.body) {
-      addElement()
+      document.body.appendChild(this._element)
+      this._replayBacklog()
     } else {
+      const self = this
       if (document.attachEvent) {
         document.attachEvent('onreadystatechange', function () {
           if (document.readyState === 'complete') {
-            addElement()
+            document.body.appendChild(self._element)
+            self._replayBacklog()
           }
         })
       } else {
         document.addEventListener('DOMContentLoaded', function () {
-          addElement()
+          document.body.appendChild(self._element)
+          self._replayBacklog()
         })
       }
     }
   }
 
+  ConsoleRepeater.OSD.prototype._replayBacklog = function () {
+    while (this._backlog.length > 0) {
+      var backlogEntry = this._backlog.shift()
+      var level = backlogEntry[0]
+      var args = backlogEntry[1]
+      this.handle(level, args)
+    }
+  }
+
+  ConsoleRepeater.OSD.prototype._storeInBacklog = function (level, args) {
+    if (this._backlog.length > OSD_BACKLOG_SIZE) {
+      this._backlog.shift()
+    }
+    this._backlog.push([level, args])
+  }
+
+  ConsoleRepeater.OSD.prototype._isReady = function () {
+    return !!this._element
+  }
+
+  ConsoleRepeater.OSD.prototype._appendMessage = function (level, args) {
+
+    var message = this._counter++
+        + ' [' + level + '] '
+        + format(args).replace(/\n/g, '\n...... ')
+    var messageEl = document.createElement('div')
+    messageEl.setAttribute('class', 'osd-console-message')
+    messageEl.textContent = message
+    this._element.appendChild(messageEl)
+    this._element.scrollTop = this._element.scrollHeight
+  }
+
   ConsoleRepeater.OSD.prototype.handle = function (level, args) {
-    if (this._element) {
-      if (this._element.style.display === 'block') {
-        var message = this._counter++ + ' [' + level + '] ' + args.join(' ')
-        var messageEl = document.createElement('div')
-        messageEl.setAttribute('class', 'osd-console-message')
-        messageEl.textContent = message
-        this._element.appendChild(messageEl)
-        this._element.scrollTop = this._element.scrollHeight
-      }
+    if (this._isReady()) {
+      this._appendMessage(level, args)
     } else {
-      if (this._backlog.length > OSD_BACKLOG_SIZE) {
-        this._backlog.shift()
-      }
-      this._backlog.push([level, args])
+      this._storeInBacklog(level, args)
     }
   }
 
@@ -166,6 +188,19 @@
 
   // UTILITIES
   // ----------------------------------------------------------------------
+
+  function format (logArgs) {
+    var parts = []
+    for (var i=0; i<logArgs.length; i++) {
+      var arg = logArgs[i]
+      if (arg instanceof Error) {
+        parts.push('\n' + arg.stack)
+      } else {
+        parts.push(String(arg))
+      }
+    }
+    return parts.join(' ')
+  }
 
   function cssObjectToString (cssObject) {
     var s = ''
