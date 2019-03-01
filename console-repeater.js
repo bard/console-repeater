@@ -204,8 +204,9 @@
 
   function format (logArgs) {
     var parts = []
-    for (var i=0; i<logArgs.length; i++) {
-      var arg = logArgs[i]
+    var filteredArgs = stripStyles(logArgs)
+    for (var i=0; i<filteredArgs.length; i++) {
+      var arg = filteredArgs[i]
       if (arg instanceof Error) {
         parts.push('\n' + arg.stack)
       } else {
@@ -213,6 +214,51 @@
       }
     }
     return parts.join(' ')
+  }
+
+  // Converts:
+  //
+  //   ['foo', '%cbar', 'color: red;', '%c%chello', 'color:blue;',
+  //   'background: red;']
+  //
+  // Into:
+  //
+  //   ['foo', 'bar', 'hello']
+  
+  function stripStyles(inputArgs) {
+    var styleIndices = []
+    var filteredArgs = []
+    
+    for (var i=0; i<inputArgs.length; i++) {
+      // arg was marked as style in a previous iteration, so skip it
+      if (styleIndices.indexOf(i) !== -1)
+        continue
+
+      // arg is not a string and doesn't need being searched for
+      // style placeholders
+      var arg = inputArgs[i]
+      if (typeof arg !== 'string') {
+        filteredArgs.push(arg)
+        continue
+      }
+
+      var stylePlaceholderMatches = arg.match(/%c/g)
+      if (stylePlaceholderMatches) {
+        // arg contains one or more style placeholders, record their
+        // indices
+        for (var j=0; j<stylePlaceholderMatches.length; j++) {
+          var styleIndex = i + j + 1
+          styleIndices.push(styleIndex)
+        }
+        filteredArgs.push(arg.replace(/%c/g, ''))
+        continue
+      }
+
+      // arg is a string with no placeholders and can be used as is
+      filteredArgs.push(arg)
+    }
+    
+    return filteredArgs
   }
 
   function cssObjectToString (cssObject) {
